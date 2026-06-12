@@ -12,6 +12,44 @@ Stratos / DEC Foundation proposes DSTN — a Decentralized Supplier Trust Networ
 
 The ISC Testing Stream contract funds the prototype phase. The commercialization path leads from direct GoC department adoption under the Pathway to Commercialization program to provincial governments, international procurement bodies, and enterprise B2B markets — an addressable market in the hundreds of millions of dollars annually.
 
+**Figure BP-0 — How DSTN Works: End-to-End System Workflow**
+
+```mermaid
+flowchart TB
+    subgraph GOV["Government of Canada — Public Contract Data"]
+        direction LR
+        CB[(CanadaBuys\nContract History)]
+        OG[(Open Government\nProcurement Datasets)]
+    end
+
+    subgraph PLATFORM["DSTN Platform — Fully Automated · No Government Staff Action Required Per Credential"]
+        direction LR
+        AGG["Data Ingestion &\nStatus Derivation"]
+        CRED["Credential Issuance\nCryptographically signed\nTamper-resistant"]
+        VS["Verification Service\nLive · Decentralized"]
+    end
+
+    subgraph SUP["Supplier"]
+        direction LR
+        PORTAL["DSTN Supplier Portal\nPasskey login · no app install · no seed phrase"]
+        BADGE["Live Trust Badge\nembedded on supplier website"]
+    end
+
+    subgraph BUYER["Buyer / GoC Department / Public Verifier"]
+        direction LR
+        VER["Scan QR code · view live badge\nor call Verification API"]
+        RESULT["Verified supplier status\ncryptographic proof · < 1 second"]
+    end
+
+    GOV -->|"automated daily ingestion"| AGG
+    AGG -->|"supplier status active —\ncredential triggered"| CRED
+    CRED -->|"issued to supplier's TEE Holder\nvia passkey-gated portal"| PORTAL
+    PORTAL -->|"supplier pastes embed snippet\ninto their website"| BADGE
+    BADGE -->|"live status check\non every page load"| VS
+    VER --> VS
+    VS --> RESULT
+```
+
 ---
 
 ## 2. Company Profile
@@ -107,6 +145,21 @@ flowchart LR
 
 **Revenue:** ISC contract value (up to $2,300,000 CAD)
 
+**Figure BP-0a — Supplier Journey**
+
+```mermaid
+flowchart LR
+    S1["GoC contract\nawarded to supplier"]
+    S2["DSTN detects award\nin public data\nautomatically"]
+    S3["Supplier visits\nDSTN Supplier Portal"]
+    S4["Registers passkey\nFace ID · Touch ID\nWindows Hello · YubiKey"]
+    S5["Credential issued\nautomatically\nno staff action required"]
+    S6["Copies badge snippet\nto company website"]
+    S7["Live verified badge\nvisible to all buyers"]
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+```
+
 ### 4.2 Phase 2 — Pathway to Commercialization (Months 7–18)
 
 ISC's Pathway to Commercialization (PTC) program enables direct procurement by government departments for up to 3 years following successful testing. DSTN's first commercial customers come through this channel.
@@ -129,6 +182,19 @@ ISC's Pathway to Commercialization (PTC) program enables direct procurement by g
 | Provincial procurement body | $200,000–$350,000 CAD |
 
 **Year 2 revenue target:** 3–5 GoC and provincial department contracts → $600,000–$1,500,000 CAD
+
+**Figure BP-0b — Buyer / Verifier Experience**
+
+```mermaid
+flowchart LR
+    V1["Buyer evaluates\na supplier"]
+    V2["Visits supplier website\nor scans QR code\nor calls Verification API"]
+    V3["DSTN queries\nStratos Blockchain\nin real time"]
+    V4["Verified status\nreturned in < 1 second"]
+    V5["Cryptographic proof\nof GoC supplier status\nno staff contacted"]
+
+    V1 --> V2 --> V3 --> V4 --> V5
+```
 
 ### 4.3 Phase 3 — Commercial Scale (Years 2–4)
 
