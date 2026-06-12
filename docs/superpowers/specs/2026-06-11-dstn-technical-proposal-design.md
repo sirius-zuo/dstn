@@ -277,45 +277,6 @@ graph LR
 | Onboarding — Phase 2 | Email invite + self-serve fallback | Proactive invite when contact email is available in procurement records |
 | Access per company | Single designated holder (Phase 1) | One passkey per company; multi-holder and access delegation deferred to Phase 2 |
 
-**Figure 4 — Component Changes: Removed · Added · Unchanged**
-
-```mermaid
-flowchart LR
-    subgraph RM["❌  Removed"]
-        direction TB
-        R1["Aries Holder Agent\nuser-installed wallet"]
-        R2["Supplier Wallet UI"]
-        R3["Wallet private key\nheld by supplier"]
-    end
-
-    subgraph ADDED["✅  Added"]
-        direction TB
-        A1["DSTN Supplier Portal\nWebAuthn · no install required"]
-        A2["Passkey Registry\nTEE-resident"]
-        A3["TEE Holder Agent\nsession-scoped"]
-        A4["Credential Store\nencrypted at rest"]
-        A5["Pending State Store\nin Data Aggregation"]
-    end
-
-    subgraph KEPT["✓  Unchanged"]
-        direction TB
-        U1["Aries Issuer Agent TEE"]
-        U2["Data Aggregation Service"]
-        U3["Stratos Infrastructure\nBlockchain · Storage · TEE · DB"]
-        U4["Verification API"]
-        U5["Verifier Widget"]
-        U6["Admin Dashboard"]
-    end
-
-    classDef removed fill:#fff1f2,stroke:#fecdd3,color:#be123c,font-weight:bold
-    classDef added fill:#f0fdf4,stroke:#86efac,color:#166534,font-weight:bold
-    classDef kept fill:#f8fafc,stroke:#e2e8f0,color:#64748b
-
-    class R1,R2,R3 removed
-    class A1,A2,A3,A4,A5 added
-    class U1,U2,U3,U4,U5,U6 kept
-```
-
 ---
 
 ## 4. Data Flows
@@ -334,7 +295,7 @@ flowchart LR
 
 **No government staff action is required per individual credential.** The pipeline is data-event-driven, not human-initiated.
 
-**Figure 5 — Credential Issuance Sequence**
+**Figure 4 — Credential Issuance Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -373,7 +334,7 @@ sequenceDiagram
 
 Suppliers visit the DSTN portal once to register their passkey and claim their credential. No wallet software is installed. No seed phrase is generated.
 
-**Figure 6 — Supplier Registration Sequence**
+**Figure 5 — Supplier Registration Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -413,7 +374,7 @@ sequenceDiagram
 
 On every subsequent visit, the supplier authenticates with their passkey. No password, no username.
 
-**Figure 7 — Supplier Session Sequence**
+**Figure 6 — Supplier Session Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -453,7 +414,7 @@ sequenceDiagram
 4. Badge shows real-time status: green (verified), amber (expiring soon), red (revoked / expired)
 5. No polling lag — the API reads directly from Stratos chain state
 
-**Figure 8 — Credential Display (Embeddable Badge) Sequence**
+**Figure 7 — Credential Display (Embeddable Badge) Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -488,7 +449,7 @@ sequenceDiagram
 4. Returns a signed JSON response: credential status, issuing authority, issue date, expiry, and cryptographic proof
 5. Round-trip completes in under one second
 
-**Figure 9 — Active Verification Sequence**
+**Figure 8 — Active Verification Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -516,7 +477,7 @@ sequenceDiagram
 
 **Revocation is data-driven**, not staff-driven. Any change in the authoritative public data propagates to the credential within the next scheduled data sync window.
 
-**Figure 10 — Automated Revocation Sequence**
+**Figure 9 — Automated Revocation Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -638,7 +599,7 @@ The ISC testing contract funds **hardening this prototype to production quality*
 | Month 3–4 | Supplier Portal and Verifier Widget functional; performance benchmarks established; revocation flow demonstrated end-to-end; bilingual UI complete | Sub-1-second verification API response; revocation reflected in widget within 30 seconds of status change |
 | Month 5–6 | TEE-attested issuance complete (hardware attestation verifiable); system deployed in PSPC-adjacent test environment; 30-day stability test; security and privacy assessment aligned with Treasury Board standards | 99.9% uptime over 30-day test; hardware attestation verifiable by third-party; security assessment delivered |
 
-**Figure 11 — Contract Milestone Timeline**
+**Figure 10 — Contract Milestone Timeline**
 
 ```mermaid
 gantt

@@ -107,38 +107,6 @@ flowchart LR
 
 **Revenue:** ISC contract value (up to $2,300,000 CAD)
 
-**Figure BP-2a — Supplier Onboarding: Before and After**
-
-```mermaid
-flowchart LR
-    subgraph BEFORE["Before — Wallet-Based Holder"]
-        direction TB
-        B1["Install Aries wallet app"]
-        B2["Generate DID\nback up seed phrase"]
-        B3["Establish DIDComm\nconnection with DSTN"]
-        B4["Receive credential\nin wallet"]
-        B5["Generate badge snippet\nfrom wallet"]
-        B1 --> B2 --> B3 --> B4 --> B5
-    end
-
-    BEFORE --->|"replaced by\npasskey-gated\nTEE holder"| AFTER
-
-    subgraph AFTER["After — Passkey-Based Portal"]
-        direction TB
-        A1["Visit DSTN Supplier Portal\nin any browser"]
-        A2["Register passkey\nFace ID · Touch ID · Windows Hello"]
-        A3["Credential issued to\nTEE Holder Agent automatically"]
-        A4["Generate badge snippet\nfrom portal"]
-        A1 --> A2 --> A3 --> A4
-    end
-
-    classDef oldStyle fill:#fff1f2,stroke:#fecdd3,color:#7f1d1d
-    classDef newStyle fill:#f0fdf4,stroke:#86efac,color:#14532d,font-weight:bold
-
-    class B1,B2,B3,B4,B5 oldStyle
-    class A1,A2,A3,A4 newStyle
-```
-
 ### 4.2 Phase 2 — Pathway to Commercialization (Months 7–18)
 
 ISC's Pathway to Commercialization (PTC) program enables direct procurement by government departments for up to 3 years following successful testing. DSTN's first commercial customers come through this channel.
