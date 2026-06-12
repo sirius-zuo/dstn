@@ -1,7 +1,7 @@
 # DSTN Technical Proposal — Decentralized Supplier Trust Network
 **Innovative Solutions Canada — Trust and Verification in Digital Government**
 **Prepared by:** Stratos / DEC Foundation
-**Date:** 2026-06-11
+**Date:** 2026-06-11 (revised 2026-06-12 — passkey-gated holder design integrated)
 **Document type:** Technical Proposal
 
 ---
@@ -14,6 +14,7 @@ The Government of Canada has no standardized digital mechanism for suppliers to 
 - No machine-readable API that buyers or GoC departments can call to confirm supplier status in real-time
 - Fragmented data across multiple public sources with no single aggregated view
 - No cryptographic proof of the status claim — verification requires human judgment, not code
+- No usable holder experience for non-technical suppliers — digital wallet adoption requires seed phrase management and app installation that creates unnecessary friction for government procurement users
 
 **Per ISC Amendment 002:** "Government of Canada supplier" status means a supplier is a recipient of a federal contract award and is in good standing. The authoritative public data source for this status does not yet exist in final form; during the testing phase, Open Government procurement datasets serve as the evidence base.
 
@@ -27,7 +28,7 @@ The solution must aggregate publicly available GoC contract data, derive supplie
 
 1. **Ingests and aggregates** publicly available GoC contract data (CanadaBuys Contract History, Open Government procurement datasets, and the future authoritative public source once established) to derive supplier status automatically — no manual government staff action required per credential
 2. **Issues tamper-resistant** W3C-aligned supplier credentials anchored on the Stratos decentralized blockchain via the Hyperledger Aries / AnonCreds protocol
-3. **Delivers credentials** to supplier wallets where they are held portably and displayed anywhere
+3. **Delivers credentials** to a server-side TEE Holder Agent, accessed by suppliers through a web portal authenticated with a platform passkey (Apple Face ID / Touch ID, Google Passkey, Windows Hello, or YubiKey) — no wallet software installed, no seed phrase managed
 4. **Exposes real-time verification** through an embeddable widget and public REST API — "single click or scan"
 
 DSTN is built on **Stratos Dcloud** — a production-grade decentralized cloud infrastructure with no central point of failure — combined with the **Hyperledger Aries / AnonCreds** open credential protocol stack.
@@ -44,13 +45,12 @@ DSTN is built on **Stratos Dcloud** — a production-grade decentralized cloud i
 |---|---|
 | Stratos Blockchain | DID registry (`did:stratos`), AnonCreds schema and credential definition anchoring, tamper-resistant audit chain |
 | Decentralized Storage | Credential schemas, AnonCreds revocation registries — no central server |
-| Decentralized Compute (TEE) | Secure credential issuance — private signing key never leaves the hardware enclave |
+| Decentralized Compute (TEE) | Secure credential issuance and holder agent operation — private signing keys never leave the hardware enclave |
 | Decentralized Database | Immutable, append-only audit log of all issuance, verification, and revocation events |
 
 **Layer 2 — Credential Protocol Layer (new build)**
 
 - **Aries Issuer Agent** — runs inside Stratos TEE; handles AnonCreds credential issuance and revocation on behalf of PSPC
-- **Aries Holder Agent** — supplier-side wallet for receiving and managing credentials
 - **AnonCreds Schema + Credential Definition** — anchored on Stratos Blockchain (replacing Hyperledger Indy as the ledger)
 - **Revocation Registry** — stored on Stratos Decentralized Storage, updated in real-time
 
@@ -64,16 +64,28 @@ A scheduled ingestion pipeline that reads all publicly available GoC contract da
 | Open Government Connector | Downloads and parses Open Government procurement datasets (proactive disclosure, contract search) |
 | Future Authority Connector | Pluggable adapter reserved for the yet-to-be-determined authoritative public data source (per AMD002) |
 | Status Derivation Engine | Aggregates records across sources, applies status logic (contract awarded + in good standing), and flags changes |
-| Credential Trigger | Calls the Aries Issuer Agent to issue or revoke credentials when supplier status changes |
+| Pending State Store | Holds suppliers detected in the data but not yet registered at the DSTN portal; credential issuance is deferred until registration completes |
+| Credential Trigger | Calls the Aries Issuer Agent to issue or revoke credentials when supplier status changes and a passkey registration exists |
 
 **Layer 3 — Application Layer (new build)**
 
 | Component | Description |
 |---|---|
-| Admin Dashboard | Internal monitoring interface showing data sync status, issuance history, and revocation log — no manual per-supplier credential issuance required |
-| Supplier Wallet | Web and mobile interface for suppliers to receive credentials and generate embeddable badges |
+| DSTN Supplier Portal | Web application — no install required. Passkey registration and authentication, credential status view, embeddable badge snippet generator |
+| Passkey Registry | TEE-resident mapping of passkey P-256 public key → CRA business number → `did:key`. Created once at registration. |
+| TEE Holder Agent | Per-supplier Aries holder protocol stack running inside Stratos TEE. Session-scoped: activates on valid passkey assertion, deactivates and clears key material at session end |
+| Credential Store | AnonCreds credentials and link secrets encrypted at rest inside TEE, keyed by `did:key` |
+| Admin Dashboard | Internal monitoring interface showing data sync status, issuance history, and revocation log |
 | Verifier Widget | Single embeddable `<script>` tag — renders a live trust badge on any supplier webpage |
 | Verification API | Public REST endpoint returning real-time valid / revoked / expired status with cryptographic proof |
+
+**Holder DID format:** Each supplier's holder DID is derived deterministically from their passkey's P-256 public key using the W3C `did:key` method:
+
+```
+did:key:z<multibase-encoded P-256 public key>
+```
+
+No blockchain transaction is required to register the supplier's holder DID. The DID is stable as long as the passkey is stable. If a passkey is lost or rotated, the supplier re-registers and DSTN automatically re-issues (issuance is data-driven).
 
 **Figure 1 — System Architecture and Component Diagram**
 
@@ -85,17 +97,24 @@ graph TB
         FA[(Future Authoritative\nSource — TBD per AMD002)]
     end
 
+    subgraph SUP["Supplier — no install required"]
+        DEV[Supplier Device\niPhone · Mac · PC]
+        PA[Platform Authenticator\nApple Keychain · Google PM · YubiKey]
+        SP[DSTN Supplier Portal\nWebAuthn · passkey registration & login]
+        DEV --> PA --> SP
+    end
+
     subgraph L25["Layer 2.5 · Data Aggregation Service"]
         CBC[CanadaBuys Connector]
         OGC[Open Gov Connector]
         FAC[Future Auth Connector]
         SDE[Status Derivation Engine]
+        PSS[Pending State Store\ndetected · unregistered suppliers]
         CT[Credential Trigger]
     end
 
     subgraph L2["Layer 2 · Credential Protocol — Hyperledger Aries / AnonCreds"]
         IA["Aries Issuer Agent\n(running inside TEE)"]
-        HA[Aries Holder Agent]
         SDEF[Schema & Credential\nDefinition]
     end
 
@@ -107,8 +126,10 @@ graph TB
     end
 
     subgraph L3["Layer 3 · Application Layer"]
+        PR[Passkey Registry\npubkey → biz# → did:key]
+        THA[TEE Holder Agent\nsession-scoped · passkey-gated]
+        CS[Credential Store\nencrypted at rest in TEE]
         AD[Admin Dashboard]
-        SW[Supplier Wallet]
         VW[Verifier Widget]
         API[Verification API]
     end
@@ -119,18 +140,22 @@ graph TB
     CBC --> SDE
     OGC --> SDE
     FAC --> SDE
+    SDE -->|supplier not yet registered| PSS
     SDE -->|status change event| CT
     CT -->|issue / revoke| IA
+
+    SP -->|WebAuthn assertion\nP-256 signature over challenge| PR
+    PR --> THA --> CS
+    THA --> SP
 
     IA -->|signs inside| TEE
     SDEF -->|anchor| BC
     IA -->|anchor schema & cred def| BC
     IA -->|update revocation registry| DS
+    IA -->|DIDComm credential delivery\nIssuer TEE → Holder TEE| THA
     IA -->|append audit record| DB
-    IA -->|DIDComm credential delivery| HA
 
-    HA --> SW
-    SW -->|generate embed snippet| VW
+    SP -->|generate embed snippet| VW
     API -->|resolve did:stratos| BC
     API -->|check revocation| DS
     AD -.->|monitor| DB
@@ -151,7 +176,7 @@ graph LR
     subgraph DSTN["DSTN System"]
         DAS[Data Aggregation\nService]
         IA["Aries Issuer Agent\n(TEE)"]
-        SW[Supplier Wallet]
+        SP[Supplier Portal\nPasskey Registry · TEE Holder]
         VW[Verifier Widget]
         API[Verification API]
         AD[Admin Dashboard]
@@ -171,12 +196,12 @@ graph LR
     CBuys -->|feeds| DAS
     OGov -->|feeds| DAS
     DAS -->|triggers| IA
-    IA -->|DIDComm| SW
+    IA -->|DIDComm TEE-internal| SP
     IA -->|anchors| BC
     IA -->|revocation| DS
     IA -->|audit| DB
 
-    SUP -->|receives credential| SW
+    SUP -->|passkey authentication\nFace ID · Touch ID| SP
     SUP -->|embeds on website| VW
     VW -->|live status call| API
     VER -->|scan / API call| API
@@ -187,6 +212,17 @@ graph LR
     AD -.->|reads| DB
 ```
 
+### 3.3 Holder Design Decisions
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Holder architecture | Passkey P-256 public key anchors supplier DID | Non-custodial identity — DID is a deterministic function of the passkey; server cannot forge or reassign it |
+| DID format | `did:key` from passkey P-256 public key | No on-chain transaction required for supplier DID registration; stable while passkey is stable |
+| Credential storage | Server-side TEE (encrypted at rest) | Supplier can access from any device; no data lost on device change; re-issuance is automatic |
+| Onboarding — Phase 1 | Self-serve portal | Supplier visits portal, enters business number, registers passkey; no email dependency |
+| Onboarding — Phase 2 | Email invite + self-serve fallback | Proactive invite when contact email is available in procurement records |
+| Access per company | Single designated holder (Phase 1) | One passkey per company; multi-holder and access delegation deferred to Phase 2 |
+
 ---
 
 ## 4. Data Flows
@@ -195,11 +231,13 @@ graph LR
 
 1. Data Aggregation Service fetches CanadaBuys Contract History and Open Government procurement datasets on a scheduled basis
 2. Status Derivation Engine applies status logic: if a business number appears as a contract awardee and no adverse standing record exists, supplier status is set to "active"
-3. Credential Trigger invokes the Aries Issuer Agent for new or status-changed suppliers
-4. Aries Issuer Agent (running inside Stratos TEE) signs an AnonCreds credential — private key never leaves the secure enclave
-5. Signed credential delivered to the Supplier Wallet via DIDComm (Aries connection protocol)
-6. Credential definition and schema (anchored on Stratos Blockchain) serve as the public verification anchor
-7. Issuance event written to Stratos Decentralized Database as an immutable audit record
+3. If the supplier has a registered passkey: Credential Trigger invokes the Aries Issuer Agent immediately
+4. If the supplier has **no** registered passkey: supplier is recorded in the Pending State Store; issuance is deferred until the supplier registers at the portal
+5. Aries Issuer Agent (running inside Stratos TEE) signs an AnonCreds credential — private key never leaves the secure enclave
+6. Signed credential delivered to the TEE Holder Agent via internal DIDComm (Issuer TEE to Holder TEE — no external network hop)
+7. TEE Holder Agent stores the credential in the Credential Store (encrypted at rest)
+8. Credential definition and schema (anchored on Stratos Blockchain) serve as the public verification anchor
+9. Issuance event written to Stratos Decentralized Database as an immutable audit record
 
 **No government staff action is required per individual credential.** The pipeline is data-event-driven, not human-initiated.
 
@@ -210,52 +248,132 @@ sequenceDiagram
     participant PDS as CanadaBuys / Open Gov
     participant DAS as Data Aggregation Service
     participant SDE as Status Derivation Engine
+    participant PSS as Pending State Store
     participant CT as Credential Trigger
     participant IA as Aries Issuer Agent (TEE)
     participant BC as Stratos Blockchain
     participant DS as Decentralized Storage
     participant DB as Decentralized Database
-    participant SW as Supplier Wallet
+    participant THA as TEE Holder Agent
 
     PDS-->>DAS: Scheduled fetch (contract award records)
     DAS->>SDE: Normalize & aggregate across sources
     SDE->>SDE: Apply status logic\n(awarded + in good standing?)
 
-    alt New supplier or status changed
+    alt Supplier registered (passkey exists)
         SDE->>CT: Emit status change event
         CT->>IA: Request credential issuance
         IA->>BC: Resolve schema & credential definition
         BC-->>IA: Schema + cred def
         note over IA: Signs AnonCreds credential\nPrivate key never leaves TEE enclave
         IA->>DS: Write revocation registry entry
-        IA->>SW: Deliver credential via DIDComm
+        IA->>THA: Deliver credential via DIDComm (TEE-internal)
+        THA->>THA: Credential encrypted at rest in Credential Store
         IA->>DB: Append immutable issuance audit record
-        SW-->>SW: Credential stored in supplier wallet
+    else Supplier not yet registered
+        SDE->>PSS: Record as pending_registration
+        note over PSS: Issuance deferred until\nsupplier registers passkey at portal
     end
 ```
 
-### Flow 2 — Credential Display (Embeddable Badge)
+### Flow 2 — Supplier Registration (Self-Serve)
 
-1. Supplier logs into their Wallet and generates a Verifier Widget snippet
+Suppliers visit the DSTN portal once to register their passkey and claim their credential. No wallet software is installed. No seed phrase is generated.
+
+**Figure 4 — Supplier Registration Sequence**
+
+```mermaid
+sequenceDiagram
+    participant SUP as Supplier
+    participant PORTAL as DSTN Supplier Portal
+    participant PSS as Pending State Store
+    participant PR as Passkey Registry (TEE)
+    participant KA as Platform Authenticator\n(Apple Keychain / Google PM / YubiKey)
+    participant IA as Aries Issuer Agent (TEE)
+    participant THA as TEE Holder Agent
+    participant CS as Credential Store (TEE)
+
+    note over PSS: Data pipeline detected supplier\nCredential in pending_registration state
+
+    SUP->>PORTAL: Visit portal, enter CRA business number
+    PORTAL->>PSS: Look up business number
+    PSS-->>PORTAL: Pending credential found
+
+    PORTAL->>SUP: Prompt: register passkey
+    SUP->>KA: navigator.credentials.create()
+    KA->>KA: Generate P-256 key pair\nin device secure enclave\n(Face ID / Touch ID confirms)
+    KA-->>PORTAL: P-256 public key + attestation
+
+    PORTAL->>PR: Register: pubkey → business# → did:key
+    PR->>PR: Derive did:key from P-256 pubkey\n(deterministic · no blockchain tx)
+    PR-->>PORTAL: did:key registered
+
+    PORTAL->>IA: Trigger credential issuance to did:key
+    IA->>THA: DIDComm credential offer (TEE-internal)
+    THA->>CS: Store AnonCreds credential\n(encrypted at rest)
+    CS-->>PORTAL: Status → active
+
+    PORTAL-->>SUP: Credential active — view badge & embed snippet
+```
+
+### Flow 3 — Supplier Session (Returning Access)
+
+On every subsequent visit, the supplier authenticates with their passkey. No password, no username.
+
+**Figure 5 — Supplier Session Sequence**
+
+```mermaid
+sequenceDiagram
+    participant SUP as Supplier
+    participant PORTAL as DSTN Supplier Portal
+    participant KA as Platform Authenticator
+    participant PR as Passkey Registry (TEE)
+    participant THA as TEE Holder Agent
+    participant CS as Credential Store (TEE)
+
+    SUP->>PORTAL: Visit portal
+    PORTAL->>SUP: Issue WebAuthn authentication challenge
+    SUP->>KA: navigator.credentials.get()
+    KA->>KA: Sign challenge with stored P-256 key\n(Face ID / Touch ID confirms)
+    KA-->>PORTAL: Signed assertion (P-256 signature)
+
+    PORTAL->>PR: Verify assertion against registered public key
+    PR-->>PORTAL: Verified → did:key resolved
+    PORTAL->>THA: Activate holder agent session
+
+    THA->>CS: Decrypt credential for session
+    CS-->>THA: AnonCreds credential (in-memory only)
+
+    SUP->>PORTAL: View credential status / generate embed snippet
+    PORTAL-->>SUP: Credential details + <script> embed code
+
+    note over THA,CS: Session ends
+    THA->>CS: Re-encrypt credential at rest
+    THA->>THA: Clear all in-memory key material
+```
+
+### Flow 4 — Credential Display (Embeddable Badge)
+
+1. Supplier logs into the portal (passkey authentication) and generates a Verifier Widget snippet
 2. Supplier pastes the `<script>` tag into their website — no technical knowledge required
 3. Widget renders a live trust badge and calls the Verification API on every page load
 4. Badge shows real-time status: green (verified), amber (expiring soon), red (revoked / expired)
 5. No polling lag — the API reads directly from Stratos chain state
 
-**Figure 4 — Credential Display (Embeddable Badge) Sequence**
+**Figure 6 — Credential Display (Embeddable Badge) Sequence**
 
 ```mermaid
 sequenceDiagram
     participant SUP as Supplier
-    participant SW as Supplier Wallet
+    participant PORTAL as Supplier Portal
     participant WEB as Supplier Website
     participant VW as Verifier Widget
     participant API as Verification API
     participant BC as Stratos Blockchain
     participant DS as Decentralized Storage
 
-    SUP->>SW: Log in and request widget snippet
-    SW-->>SUP: Returns <script> embed code
+    SUP->>PORTAL: Authenticate with passkey, request widget snippet
+    PORTAL-->>SUP: Returns <script> embed code
     SUP->>WEB: Paste embed code into website
 
     note over WEB,DS: On every page load by any visitor
@@ -269,7 +387,7 @@ sequenceDiagram
     VW-->>WEB: Render live trust badge\n(Verified / Expiring Soon / Revoked)
 ```
 
-### Flow 3 — Active Verification
+### Flow 5 — Active Verification
 
 1. A buyer or GoC department scans the QR code or calls the Verification API directly
 2. API resolves the supplier's `did:stratos` DID against the Stratos Blockchain
@@ -277,7 +395,7 @@ sequenceDiagram
 4. Returns a signed JSON response: credential status, issuing authority, issue date, expiry, and cryptographic proof
 5. Round-trip completes in under one second
 
-**Figure 5 — Active Verification Sequence**
+**Figure 7 — Active Verification Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -294,7 +412,7 @@ sequenceDiagram
     API-->>VER: Signed JSON response\n{ status, issuer, issue_date,\n  expiry, cryptographic_proof }\nRound-trip < 1 second
 ```
 
-### Flow 4 — Revocation (Automated)
+### Flow 6 — Revocation (Automated)
 
 1. Data Aggregation Service detects that a supplier's status has changed in the public data (contract no longer in good standing, business deregistered, adverse record added)
 2. Status Derivation Engine sets the supplier status to "revoked"
@@ -305,7 +423,7 @@ sequenceDiagram
 
 **Revocation is data-driven**, not staff-driven. Any change in the authoritative public data propagates to the credential within the next scheduled data sync window.
 
-**Figure 6 — Automated Revocation Sequence**
+**Figure 8 — Automated Revocation Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -367,6 +485,16 @@ Stratos's Proof-of-Traffic consensus measures actual network resource usage by e
 
 **Claim:** First credential system where verification traffic itself is an on-chain, auditable trust metric.
 
+### Innovation 5 — Passkey-Anchored Holder Identity with Zero Wallet UX
+
+The industry standard for VC holder agents requires the holder to install a wallet application, generate or import a DID private key, and manage a cryptographic seed phrase — significant friction for non-technical government procurement users.
+
+DSTN eliminates this barrier: the supplier's device passkey (W3C WebAuthn P-256 credential, stored in the Apple Secure Enclave, Google Titan chip, or a FIDO2 hardware key) serves as the identity anchor. The supplier's holder DID is derived deterministically from the passkey's P-256 public key using the `did:key` method — no blockchain transaction, no app install, no seed phrase. A TEE Holder Agent running on Stratos infrastructure activates only during passkey-authenticated sessions and encrypts all credential material at rest under TEE hardware isolation.
+
+The non-custodial property is precise: the supplier's *identity DID* is genuinely non-custodial — it is a mathematical function of the passkey private key, which never leaves the supplier's device secure enclave. The credential bytes are TEE-custodial, under the same hardware-isolation guarantee as the Aries Issuer Agent (Innovation 2).
+
+**Claim:** First AnonCreds holder implementation where the holder's DID is anchored to a platform passkey and the holder agent runs entirely in a TEE — achieving wallet-free UX without sacrificing cryptographic identity integrity.
+
 ### Innovation Summary
 
 | Innovation | State-of-art claim |
@@ -375,6 +503,7 @@ Stratos's Proof-of-Traffic consensus measures actual network resource usage by e
 | TEE-attested issuance | Hardware proof no other VC issuer provides |
 | Decentralized revocation registry | Eliminates the single point of failure all current systems carry |
 | PoT-derived trust score | Entirely novel signal — no prior art in credential systems |
+| Passkey-anchored holder identity | First wallet-free AnonCreds holder with TEE-backed passkey gating |
 
 ---
 
@@ -390,17 +519,19 @@ DSTN integrates two independently TRL-9 technology stacks — Stratos Dcloud and
 |---|---|---|
 | Stratos Blockchain (DID registry, credential anchoring) | TRL 9 | Production mainnet live with commercial traffic |
 | Stratos Decentralized Storage (revocation registry) | TRL 9 | Production mainnet live |
-| Stratos TEE compute (secure signing) | TRL 9 | TEE-capable nodes operating in production |
+| Stratos TEE compute (secure signing and holder agent) | TRL 9 | TEE-capable nodes operating in production |
 | Hyperledger Aries / AnonCreds (credential protocol) | TRL 9 | BC Government's OrgBook and Digital Trust production systems are identical open-source stack |
+| W3C WebAuthn / FIDO2 (passkey authentication) | TRL 9 | Deployed at scale by Apple, Google, Microsoft; supported natively by all major browsers and OS platforms |
 | CanadaBuys / Open Government public data ingestion | TRL 9 | Reading a public REST API or CSV dataset is standard integration practice with no research novelty |
-| DSTN end-to-end integration (data → status → credential → wallet → verify) | **TRL 7** | Functional prototype demonstrable at submission: schema anchored on Stratos chain, test credential issued via DIDComm, verification API returning signed response |
+| DSTN end-to-end integration (data → status → credential → TEE holder → passkey-gated portal → verify) | **TRL 7** | Functional prototype demonstrable at submission |
 
 **What the functional prototype demonstrates at submission:**
 1. A `did:stratos` DID resolution against the Stratos Blockchain ✓
 2. An AnonCreds schema and credential definition anchored on Stratos chain ✓
-3. An end-to-end test issuance: data ingestion → status derivation → Aries agent → DIDComm delivery to wallet ✓
-4. A verification API call returning signed status response in < 1 second ✓
-5. A revocation registry update propagated via Stratos Decentralized Storage ✓
+3. An end-to-end test issuance: data ingestion → status derivation → Aries agent → DIDComm delivery to TEE Holder Agent ✓
+4. A WebAuthn passkey registration and authentication flow activating the TEE Holder Agent ✓
+5. A verification API call returning signed status response in < 1 second ✓
+6. A revocation registry update propagated via Stratos Decentralized Storage ✓
 
 The ISC testing contract funds **hardening this prototype to production quality** in a PSPC-adjacent operational environment — not building from scratch.
 
@@ -410,11 +541,11 @@ The ISC testing contract funds **hardening this prototype to production quality*
 
 | Period | Milestone | Acceptance criterion |
 |---|---|---|
-| Month 1–2 | `did:stratos` DID method specification finalized and submitted to W3C registry; Data Aggregation Service ingesting CanadaBuys and Open Government datasets end-to-end; automated issuance pipeline demonstrated with test supplier data | Credential visible in supplier test wallet within 60 minutes of data ingestion cycle |
-| Month 3–4 | Supplier Wallet and Verifier Widget functional; performance benchmarks established; revocation flow demonstrated end-to-end; bilingual UI complete | Sub-1-second verification API response; revocation reflected in widget within 30 seconds of status change |
+| Month 1–2 | `did:stratos` DID method specification finalized and submitted to W3C registry; Data Aggregation Service ingesting CanadaBuys and Open Government datasets end-to-end; automated issuance pipeline demonstrated with test supplier data; passkey registration flow functional | Credential visible in supplier portal within 60 minutes of data ingestion cycle; passkey authentication activates TEE Holder Agent |
+| Month 3–4 | Supplier Portal and Verifier Widget functional; performance benchmarks established; revocation flow demonstrated end-to-end; bilingual UI complete | Sub-1-second verification API response; revocation reflected in widget within 30 seconds of status change |
 | Month 5–6 | TEE-attested issuance complete (hardware attestation verifiable); system deployed in PSPC-adjacent test environment; 30-day stability test; security and privacy assessment aligned with Treasury Board standards | 99.9% uptime over 30-day test; hardware attestation verifiable by third-party; security assessment delivered |
 
-**Figure 7 — Contract Milestone Timeline**
+**Figure 9 — Contract Milestone Timeline**
 
 ```mermaid
 gantt
@@ -426,16 +557,17 @@ gantt
     did:stratos DID spec → W3C submission          :m1, 01, 2M
     Data Aggregation Service (CanadaBuys + Open Gov):m2, 01, 2M
     Automated issuance pipeline with test data     :m3, 01, 2M
+    Passkey registration flow + TEE Holder Agent   :m4, 01, 2M
 
     section Month 3–4
-    Supplier Wallet & Verifier Widget              :m4, 03, 2M
-    Revocation flow end-to-end                     :m5, 03, 2M
-    Performance benchmarks & bilingual UI          :m6, 03, 2M
+    Supplier Portal & Verifier Widget              :m5, 03, 2M
+    Revocation flow end-to-end                     :m6, 03, 2M
+    Performance benchmarks & bilingual UI          :m7, 03, 2M
 
     section Month 5–6
-    TEE-attested issuance (hardware attestation)   :m7, 05, 2M
-    PSPC-adjacent test environment deployment      :m8, 05, 2M
-    30-day stability run + security assessment     :m9, 05, 2M
+    TEE-attested issuance (hardware attestation)   :m8, 05, 2M
+    PSPC-adjacent test environment deployment      :m9, 05, 2M
+    30-day stability run + security assessment     :m10, 05, 2M
 ```
 
 **Team allocation (5–7 engineers):**
@@ -443,8 +575,8 @@ gantt
 | Role | Headcount |
 |---|---|
 | Protocol layer (Aries / AnonCreds / Stratos Blockchain integration) | 2 |
-| Application layer (Data Aggregation Service, Supplier Wallet, Verifier Widget, API) | 2 |
-| Infrastructure / TEE integration | 2 |
+| Application layer (Data Aggregation Service, Supplier Portal, TEE Holder Agent, Verifier Widget, API) | 2 |
+| Infrastructure / TEE integration (issuer and holder TEE) | 2 |
 | Technical lead (architecture, ISC coordination) | 1 |
 
 ---
@@ -459,16 +591,19 @@ gantt
 | Stratos Blockchain throughput under verification load | Low | Mainnet handles production Web3 dApp traffic; credential verification calls are read-heavy and lightweight |
 | Authoritative public data source not yet determined (AMD002) | Medium | During testing, Open Government procurement datasets provide sufficient supplier data. The Data Aggregation Service is architected with a pluggable connector layer — the future authoritative source is added as a new connector without changing the credential issuance pipeline |
 | CanadaBuys / Open Government API changes or downtime | Low | Connectors implement retry logic and local caching of the last successful sync; credentials remain valid between sync cycles; any data source outage does not affect verification of already-issued credentials |
+| Passkey cross-platform sync gaps | Low | Apple Keychain, Google Password Manager, and Windows Hello each sync passkeys across devices within the same ecosystem. For a supplier changing platforms (e.g., Apple to Android), the portal provides a re-registration flow: the supplier enters their business number, registers a new passkey, and DSTN automatically re-issues the credential — no staff involvement, no credential loss |
 
 ---
 
 ## 8. Standards and Compliance
 
 - **W3C Verifiable Credentials Data Model 2.0** — DSTN credentials conform to the W3C VC standard
-- **W3C Decentralized Identifiers (DID) Core 1.0** — `did:stratos` method will be formally specified and registered
+- **W3C Decentralized Identifiers (DID) Core 1.0** — `did:stratos` method (issuer) and `did:key` method (holder) formally specified
 - **AnonCreds Specification 1.0** — credential format for privacy-preserving issuance
 - **Hyperledger Aries RFC protocols** — DIDComm messaging, issue-credential, present-proof
-- **WCAG 2.1 AA** — Verifier Widget and Supplier Wallet
+- **W3C Web Authentication (WebAuthn) Level 3** — passkey registration and authentication; P-256 (secp256r1) signature scheme
+- **FIDO2 / CTAP2** — platform authenticator protocol (Apple Secure Enclave, Google Titan, YubiKey)
+- **WCAG 2.1 AA** — Verifier Widget and Supplier Portal
 - **Official Languages Act** — all user-facing interfaces bilingual (English / French)
 - **Treasury Board Directive on Privacy** — no personal data stored on-chain; credentials reference opaque identifiers only
 
