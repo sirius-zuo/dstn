@@ -14,40 +14,69 @@ The ISC Testing Stream contract funds the prototype phase. The commercialization
 
 **Figure BP-0 — How DSTN Works: End-to-End System Workflow**
 
+*Color key: blue = Government of Canada · green = DSTN Platform · teal = Supplier · purple = Buyer*
+
 ```mermaid
-flowchart TB
-    subgraph GOV["Government of Canada — Public Contract Data"]
-        direction LR
-        CB[(CanadaBuys\nContract History)]
-        OG[(Open Government\nProcurement Datasets)]
-    end
+flowchart TD
+    CA["CanadaBuys\nContract History"]
+    OG["Open Government\nProcurement Datasets"]
 
-    subgraph PLATFORM["DSTN Platform — Fully Automated · No Government Staff Action Required Per Credential"]
-        direction LR
-        AGG["Data Ingestion &\nStatus Derivation"]
-        CRED["Credential Issuance\nCryptographically signed\nTamper-resistant"]
-        VS["Verification Service\nLive · Decentralized"]
-    end
+    ING["Ingest GoC Records\nDaily"]
+    STATUS["Determine Active Suppliers\nFrom contract data"]
+    CRED["Issue Verifiable Credential\nNo staff action required"]
+    VER["Verification Service\nReal-time · on Stratos Blockchain"]
 
-    subgraph SUP["Supplier"]
-        direction LR
-        PORTAL["DSTN Supplier Portal\nPasskey login · no app install · no seed phrase"]
-        BADGE["Live Trust Badge\nembedded on supplier website"]
-    end
+    PORTAL["Supplier Portal\nRegister passkey · receive credential"]
+    BADGE["Live Trust Badge\nOn supplier website"]
 
-    subgraph BUYER["Buyer / GoC Department / Public Verifier"]
-        direction LR
-        VER["Scan QR code · view live badge\nor call Verification API"]
-        RESULT["Verified supplier status\ncryptographic proof · < 1 second"]
-    end
+    RESULT["Buyer scans badge\nCryptographic proof in < 1 sec"]
 
-    GOV -->|"automated daily ingestion"| AGG
-    AGG -->|"supplier status active —\ncredential triggered"| CRED
-    CRED -->|"issued to supplier's TEE Holder\nvia passkey-gated portal"| PORTAL
-    PORTAL -->|"supplier pastes embed snippet\ninto their website"| BADGE
-    BADGE -->|"live status check\non every page load"| VS
-    VER --> VS
-    VS --> RESULT
+    CA -->|"daily feed"| ING
+    OG -->|"daily feed"| ING
+    ING --> STATUS
+    STATUS -->|"supplier active"| CRED
+    CRED -->|"auto-delivered"| PORTAL
+    PORTAL -->|"supplier embeds on website"| BADGE
+    BADGE -->|"real-time query"| VER
+    VER --> RESULT
+
+    classDef gov fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef platform fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef supplier fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef buyer fill:#f5f3ff,stroke:#7c3aed,color:#3b0764
+
+    class CA,OG gov
+    class ING,STATUS,CRED,VER platform
+    class PORTAL,BADGE supplier
+    class RESULT buyer
+```
+
+**Figure BP-0a — Supplier Journey**
+
+```mermaid
+flowchart LR
+    S1["GoC contract\nawarded to supplier"]
+    S2["DSTN detects award\nin public data\nautomatically"]
+    S3["Supplier visits\nDSTN Supplier Portal"]
+    S4["Registers passkey\nFace ID · Touch ID\nWindows Hello · YubiKey"]
+    S5["Credential issued\nautomatically\nno staff action required"]
+    S6["Copies badge snippet\nto company website"]
+    S7["Live verified badge\nvisible to all buyers"]
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+```
+
+**Figure BP-0b — Buyer / Verifier Experience**
+
+```mermaid
+flowchart LR
+    V1["Buyer evaluates\na supplier"]
+    V2["Visits supplier website\nor scans QR code\nor calls Verification API"]
+    V3["DSTN queries\nStratos Blockchain\nin real time"]
+    V4["Verified status\nreturned in < 1 second"]
+    V5["Cryptographic proof\nof GoC supplier status\nno staff contacted"]
+
+    V1 --> V2 --> V3 --> V4 --> V5
 ```
 
 ---
@@ -115,20 +144,14 @@ timeline
 
 ```mermaid
 flowchart LR
-    subgraph P1["Phase 1 · Month 1–6\nISC Testing Contract"]
-        A["TRL 7 Prototype\nPSPC test environment\nRevenue: up to $2.3M CAD"]
-    end
+    P1["Phase 1 · Month 1–6\nISC Testing Contract\nTRL 7 Prototype · PSPC test environment\nRevenue: up to $2.3M CAD"]
 
-    subgraph P2["Phase 2 · Month 7–18\nPathway to Commercialization"]
-        B["Direct GoC & Provincial Procurement\nPSPC · SSC · ISED · ON · BC · AB\nRevenue: $600K–$1.5M / yr"]
-    end
+    P2["Phase 2 · Month 7–18\nPathway to Commercialization\nDirect GoC & Provincial Procurement\nPSPC · SSC · ISED · ON · BC · AB\nRevenue: $600K–$1.5M / yr"]
 
-    subgraph P3["Phase 3 · Year 2–4\nCommercial Scale"]
-        C["Track A: Canadian Gov Expansion\nTrack B: International (US · EU · UK)\nTrack C: Enterprise B2B API\nRevenue: $4M–$8M / yr"]
-    end
+    P3["Phase 3 · Year 2–4\nCommercial Scale\nTrack A: Canadian Gov Expansion\nTrack B: International (US · EU · UK)\nTrack C: Enterprise B2B API\nRevenue: $4M–$8M / yr"]
 
-    P1 -->|"ISC Pathway\nto Commercialization"| P2
-    P2 -->|"3 parallel\nexpansion tracks"| P3
+    P1 -->|"ISC Pathway to Commercialization"| P2
+    P2 -->|"3 parallel expansion tracks"| P3
 ```
 
 ### 4.1 Phase 1 — ISC Testing Contract (Months 1–6)
@@ -144,21 +167,6 @@ flowchart LR
 - Security and privacy assessment report aligned with Treasury Board standards
 
 **Revenue:** ISC contract value (up to $2,300,000 CAD)
-
-**Figure BP-0a — Supplier Journey**
-
-```mermaid
-flowchart LR
-    S1["GoC contract\nawarded to supplier"]
-    S2["DSTN detects award\nin public data\nautomatically"]
-    S3["Supplier visits\nDSTN Supplier Portal"]
-    S4["Registers passkey\nFace ID · Touch ID\nWindows Hello · YubiKey"]
-    S5["Credential issued\nautomatically\nno staff action required"]
-    S6["Copies badge snippet\nto company website"]
-    S7["Live verified badge\nvisible to all buyers"]
-
-    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
-```
 
 ### 4.2 Phase 2 — Pathway to Commercialization (Months 7–18)
 
@@ -182,19 +190,6 @@ ISC's Pathway to Commercialization (PTC) program enables direct procurement by g
 | Provincial procurement body | $200,000–$350,000 CAD |
 
 **Year 2 revenue target:** 3–5 GoC and provincial department contracts → $600,000–$1,500,000 CAD
-
-**Figure BP-0b — Buyer / Verifier Experience**
-
-```mermaid
-flowchart LR
-    V1["Buyer evaluates\na supplier"]
-    V2["Visits supplier website\nor scans QR code\nor calls Verification API"]
-    V3["DSTN queries\nStratos Blockchain\nin real time"]
-    V4["Verified status\nreturned in < 1 second"]
-    V5["Cryptographic proof\nof GoC supplier status\nno staff contacted"]
-
-    V1 --> V2 --> V3 --> V4 --> V5
-```
 
 ### 4.3 Phase 3 — Commercial Scale (Years 2–4)
 
@@ -342,25 +337,31 @@ All team members are full-time employees based in Canada, meeting ISC's 50%+ Can
 
 **Figure BP-5 — Team Structure**
 
+*Color key: blue = leadership · green = protocol · teal = application · purple = infrastructure*
+
 ```mermaid
-graph TB
-    TL["Technical Lead / Architect ×1\nSystem architecture · ISC coordination\nDID method specification · Delivery"]
+flowchart LR
+    TL(["Technical Lead · Architect ×1\nSystem architecture · ISC coordination\nDID method spec · Delivery"])
 
-    subgraph PL["Protocol Layer"]
-        PE["Protocol Engineers ×2\nAries / AnonCreds / DIDComm\nStratos Blockchain DID registry"]
-    end
+    PE["Protocol Engineers ×2\nAries · AnonCreds · DIDComm\nStratos Blockchain DID registry"]
 
-    subgraph AL["Application Layer"]
-        AE["Application Engineers ×2\nData Aggregation Service\nSupplier Portal · TEE Holder Agent · Verifier Widget · API"]
-    end
+    AE["Application Engineers ×2\nData Aggregation Service\nSupplier Portal · TEE Holder Agent\nVerifier Widget · API"]
 
-    subgraph IL["Infrastructure / TEE Layer"]
-        IE["Infrastructure Engineers ×2\nTEE integration · Stratos nodes\nPerformance testing · Security hardening"]
-    end
+    IE["Infrastructure Engineers ×2\nTEE integration · Stratos nodes\nPerformance testing · Security hardening"]
 
-    TL --> PL
-    TL --> AL
-    TL --> IL
+    TL --> PE
+    TL --> AE
+    TL --> IE
+
+    classDef lead fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef proto fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef app fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef infra fill:#f5f3ff,stroke:#7c3aed,color:#3b0764
+
+    class TL lead
+    class PE proto
+    class AE app
+    class IE infra
 ```
 
 ---
@@ -369,28 +370,35 @@ graph TB
 
 **Figure BP-6 — Go-to-Market Flowchart**
 
+*Color key: blue = Phase 1 · green = Phase 2 · purple = Phase 3*
+
 ```mermaid
-flowchart TB
-    subgraph M16["Month 1–6 · ISC Testing Contract"]
-        PROTO["TRL 7 Prototype\nPSPC-adjacent test environment\nRevenue: up to $2.3M CAD"]
-    end
+flowchart LR
+    ISC(["ISC Testing Contract\nMonth 1–6 · Up to $2.3M CAD\nAnchor customer: PSPC"])
 
-    subgraph M718["Month 7–18 · Pathway to Commercialization"]
-        REF["PSPC Reference\nDeployment"]
-        GOC["GoC Department\nExpansion\nSSC · ISED"]
-        PROV["Provincial Procurement\nON · BC · AB"]
-        REF --> GOC
-        REF --> PROV
-    end
+    PSPC["PSPC\nFirst paid reference\nMonth 7–12"]
+    GOC["GoC Departments\nSSC · ISED\nMonth 9–18"]
+    PROV["Provincial Bodies\nON · BC · AB\nMonth 12–18"]
 
-    subgraph Y24["Year 2–4 · Commercial Scale"]
-        TA["Track A\nCanadian Gov Expansion\nCCIB · WBE · Professional Licensing"]
-        TB["Track B\nInternational\nUS SAM.gov · EU PEPPOL · UK GDS"]
-        TC["Track C\nEnterprise B2B\nPer-verification API · $0.10/call"]
-    end
+    TA["Track A · Year 2–3\nCanadian Gov & Province Scale\nCCIB · WBE · Professional Licensing"]
+    TB["Track B · Year 3–4\nInternational Markets\nUS SAM.gov · EU PEPPOL · UK GDS"]
+    TC["Track C · Year 2+\nEnterprise B2B API\n$0.10 per verification call"]
 
-    M16 -->|"ISC Pathway to\nCommercialization (PTC)"| M718
-    M718 -->|"3 parallel\nexpansion tracks"| Y24
+    ISC -->|"ISC PTC program"| PSPC
+    PSPC --> GOC
+    PSPC --> PROV
+    GOC --> TA
+    PROV --> TA
+    TA --> TB
+    TA --> TC
+
+    classDef p1 fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef p2 fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef p3 fill:#f5f3ff,stroke:#7c3aed,color:#3b0764
+
+    class ISC p1
+    class PSPC,GOC,PROV p2
+    class TA,TB,TC p3
 ```
 
 ---
