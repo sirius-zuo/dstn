@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-Stratos / DEC Foundation proposes DSTN — a Decentralized Supplier Trust Network — to establish a standardized digital credential for Government of Canada suppliers. DSTN automatically aggregates publicly available GoC contract data (CanadaBuys Contract History, Open Government procurement datasets, and the future authoritative public data source once established), derives supplier status from that data, and issues tamper-resistant, cryptographically verifiable credentials to supplier wallets — with no manual government staff action required per credential. Built on Stratos's production-grade decentralized cloud infrastructure and the Hyperledger Aries / AnonCreds open credential protocol, DSTN enables real-time, self-service verification of supplier status at scale.
+Stratos / DEC Foundation proposes DSTN — a Decentralized Supplier Trust Network — to establish a standardized digital credential for Government of Canada suppliers. DSTN automatically aggregates publicly available GoC contract data (CanadaBuys Contract History, Open Government procurement datasets, and the future authoritative public data source once established), derives supplier status from that data, and issues tamper-resistant, cryptographically verifiable credentials to suppliers via a passkey-authenticated web portal — requiring no wallet software, no app installation, and no seed phrase — with no manual government staff action required per credential. Built on Stratos's production-grade decentralized cloud infrastructure and the Hyperledger Aries / AnonCreds open credential protocol, DSTN enables real-time, self-service verification of supplier status at scale.
 
 The ISC Testing Stream contract funds the prototype phase. The commercialization path leads from direct GoC department adoption under the Pathway to Commercialization program to provincial governments, international procurement bodies, and enterprise B2B markets — an addressable market in the hundreds of millions of dollars annually.
 
@@ -37,7 +37,8 @@ The ISC Testing Stream contract funds the prototype phase. The commercialization
 | `did:stratos` DID method specification | Open standard (W3C submission) | Stratos / DEC Foundation | New — created under this contract |
 | TEE-backed credential issuance protocol | Patentable process | Stratos / DEC Foundation | New — created under this contract |
 | Decentralized revocation registry on PoT network | Patentable method | Stratos / DEC Foundation | New — created under this contract |
-| DSTN application layer (Issuer Portal, Supplier Wallet, Verifier Widget, API) | Copyright + trade secret | Stratos / DEC Foundation | New — created under this contract |
+| Passkey-gated TEE Holder Agent protocol | Patentable process | Stratos / DEC Foundation | New — created under this contract |
+| DSTN application layer (Supplier Portal, Verifier Widget, Verification API) | Copyright + trade secret | Stratos / DEC Foundation | New — created under this contract |
 
 ### 3.2 Third-Party IP Used
 
@@ -51,7 +52,8 @@ The ISC Testing Stream contract funds the prototype phase. The commercialization
 
 1. **Months 1–3:** File provisional patent applications in Canada for the TEE-attested credential issuance protocol and the Proof-of-Traffic anchored revocation registry. Provisional filing establishes priority dates before any public demonstration.
 2. **Months 1–2:** Submit `did:stratos` to the W3C DID specification registry. This is a strategic open standard move — it creates permanent attribution to Stratos, makes DSTN the reference implementation of the method, and raises the switching cost for any future competitor attempting to offer a compatible system.
-3. **Ongoing:** DSTN application layer (Issuer Portal, API) is kept as proprietary copyright. The credential protocol is open; the hosted commercial service is not.
+3. **Months 1–3:** File provisional patent application for the passkey-gated TEE Holder Agent protocol — the first AnonCreds holder implementation where the holder DID is anchored to a platform passkey and the holder agent runs entirely within a TEE.
+4. **Ongoing:** DSTN application layer (Supplier Portal, Verification API) is kept as proprietary copyright. The credential protocol is open; the hosted commercial service is not.
 
 **Figure BP-1 — IP Protection Timeline**
 
@@ -62,6 +64,7 @@ timeline
               : Strategic open standard — permanent attribution to Stratos
     Month 1–3 : File CA provisional patent — TEE-attested credential issuance protocol
               : File CA provisional patent — PoT-anchored revocation registry
+              : File CA provisional patent — Passkey-gated TEE Holder Agent protocol
     Ongoing   : DSTN application layer held as proprietary copyright
               : Credential protocol open · hosted commercial service is not
 ```
@@ -96,9 +99,9 @@ flowchart LR
 
 **Deliverables:**
 - Functional DSTN prototype operating in a PSPC-adjacent test environment, ingesting Open Government procurement datasets as test data per AMD002
-- Automated issuance pipeline: data ingestion → status derivation → credential issuance → supplier wallet delivery, with no per-credential government staff action required
+- Automated issuance pipeline: data ingestion → status derivation → credential issuance → passkey-gated TEE Holder Agent delivery, with no per-credential government staff action required
 - `did:stratos` DID method submitted to W3C registry
-- Supplier Wallet, Verifier Widget, and Verification API deployed and publicly accessible
+- Supplier Portal (passkey registration and authentication, credential status view, badge snippet generator), Verifier Widget, and Verification API deployed and publicly accessible
 - Performance benchmarks: sub-1-second verification, 99.9% uptime over 30-day test period
 - Security and privacy assessment report aligned with Treasury Board standards
 
@@ -203,6 +206,7 @@ The DSTN business compounds with adoption in a way that centralized competitors 
 2. **`did:stratos` as a W3C standard** — once registered and referenced in government procurement policies, replacing the DID method requires government policy changes, not just a technology swap.
 3. **Network effect** — every new issuer (government body) and new verifier (buyer, department) that integrates DSTN increases the value of being a holder. The network becomes more useful as it grows, reinforcing itself.
 4. **Stratos infrastructure advantage** — competitors building on centralized cloud (AWS, Azure) face higher unit costs and single-region failure risk. Stratos's own infrastructure gives DSTN a structural cost and resilience advantage.
+5. **Wallet-free holder experience** — DSTN is the only supplier credential system that requires no wallet installation or seed phrase management. Suppliers authenticate with Face ID, Touch ID, or Windows Hello. Competitors offering wallet-based alternatives face higher onboarding friction and slower supplier adoption — a structural UX moat that compounds with each department deployment.
 
 ---
 
@@ -255,7 +259,7 @@ When selecting subcontractors and technology vendors, Stratos / DEC Foundation c
 
 *The following is relevant to the scope / outcomes evaluation (SC4) rather than PR1, but is included here for completeness:*
 
-DSTN reduces administrative barriers for the 45,000+ Indigenous-owned businesses and 15,000+ women-owned businesses seeking federal procurement access under PSIB and similar programs. Automated credential issuance eliminates the verification wait that currently delays bidding eligibility for businesses without dedicated procurement compliance staff. The Supplier Wallet is WCAG 2.1 AA compliant, bilingual, and low-bandwidth optimized — ensuring accessibility for suppliers in remote and rural communities. The DSTN infrastructure also supports future credentials for Indigenous Business Certification (CCIB), Women-Owned Business Certification (WBE Canada), and other equity-certifying bodies, making it shared equity infrastructure rather than a single-use procurement tool.
+DSTN reduces administrative barriers for the 45,000+ Indigenous-owned businesses and 15,000+ women-owned businesses seeking federal procurement access under PSIB and similar programs. Automated credential issuance eliminates the verification wait that currently delays bidding eligibility for businesses without dedicated procurement compliance staff. The Supplier Portal is WCAG 2.1 AA compliant, bilingual, and low-bandwidth optimized. Passkey-based authentication (Face ID, Touch ID, Windows Hello, or a hardware key) eliminates the need to install wallet software or manage a cryptographic seed phrase — substantially reducing the technical barrier for small businesses and suppliers in remote or rural communities with limited IT support. The DSTN infrastructure also supports future credentials for Indigenous Business Certification (CCIB), Women-Owned Business Certification (WBE Canada), and other equity-certifying bodies, making it shared equity infrastructure rather than a single-use procurement tool.
 
 ---
 
@@ -265,7 +269,7 @@ DSTN reduces administrative barriers for the 45,000+ Indigenous-owned businesses
 |---|---|
 | Technical Lead / Architect | System architecture, ISC coordination, DID method specification, overall delivery |
 | Protocol Engineers (×2) | Aries / AnonCreds integration, Stratos Blockchain DID registry, DIDComm implementation |
-| Application Engineers (×2) | Data Aggregation Service, Supplier Wallet, Verifier Widget, Verification API |
+| Application Engineers (×2) | Data Aggregation Service, Supplier Portal, TEE Holder Agent, Verifier Widget, Verification API |
 | Infrastructure / TEE Engineers (×2) | TEE integration, Stratos node configuration, performance testing, security hardening |
 
 All team members are full-time employees based in Canada, meeting ISC's 50%+ Canadian staffing requirement.
@@ -281,7 +285,7 @@ graph TB
     end
 
     subgraph AL["Application Layer"]
-        AE["Application Engineers ×2\nData Aggregation Service\nSupplier Wallet · Verifier Widget · API"]
+        AE["Application Engineers ×2\nData Aggregation Service\nSupplier Portal · TEE Holder Agent · Verifier Widget · API"]
     end
 
     subgraph IL["Infrastructure / TEE Layer"]
