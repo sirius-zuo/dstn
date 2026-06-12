@@ -37,6 +37,60 @@ DSTN is built on **Stratos Dcloud** — a production-grade decentralized cloud i
 
 ## 3. Architecture
 
+**Figure 1 — Layer Architecture Overview**
+
+```mermaid
+flowchart TB
+    subgraph EXT["Public Data Sources"]
+        direction LR
+        CB[(CanadaBuys\nContract History)] --- OG[(Open Government\nDatasets)] --- FA[(Future Authoritative\nSource)]
+    end
+
+    subgraph SUPPLIER["Supplier — no install required"]
+        direction LR
+        DEV[Supplier Device\niPhone · Mac · PC] --> PA[Platform Authenticator\nApple Keychain · Google PM · YubiKey] --> SP[DSTN Supplier Portal\nWebAuthn registration & login]
+    end
+
+    subgraph L25["Layer 2.5 · Data Aggregation Service"]
+        direction LR
+        CBC[CanadaBuys\nConnector] --- OGC[Open Gov\nConnector] --- SDE[Status Derivation\nEngine] --- PSS[Pending State\nStore ★] --- CT[Credential\nTrigger]
+    end
+
+    subgraph L3["Layer 3 · Application Layer"]
+        direction LR
+        PR[Passkey Registry ★] --- THA[TEE Holder Agent ★] --- CS[Credential Store ★]
+        AD[Admin Dashboard] --- VW[Verifier Widget] --- API[Verification API]
+    end
+
+    subgraph L2["Layer 2 · Credential Protocol — Hyperledger Aries / AnonCreds"]
+        direction LR
+        IA[Aries Issuer Agent\nrunning in TEE] --- SDEF[AnonCreds Schema\n& Credential Definition]
+    end
+
+    subgraph L1["Layer 1 · Stratos Dcloud Infrastructure — TRL 9"]
+        direction LR
+        BC[Stratos Blockchain\nDID · Schema · Audit] --- DS[Decentralized Storage\nRevocation Registry] --- TEE[TEE Compute\nSecure Enclave] --- DB[Decentralized Database\nImmutable Audit Log]
+    end
+
+    EXT -->|"scheduled fetch"| L25
+    SUPPLIER -->|"WebAuthn assertion  P-256 signature"| L3
+    L25 -->|"issuance & revocation triggers"| L2
+    L2 -.->|"DIDComm credential delivery\nIssuer TEE → Holder TEE"| THA
+    L2 -->|"schema anchoring · revocation registry · audit"| L1
+
+    classDef newComp fill:#f0fdf4,stroke:#86efac,color:#15803d,font-weight:bold
+    classDef supComp fill:#f5f3ff,stroke:#c4b5fd,color:#5b21b6
+    classDef infraComp fill:#fefce8,stroke:#fde047,color:#713f12
+
+    class PR,THA,CS,PSS,SP newComp
+    class DEV,PA supComp
+    class BC,DS,TEE,DB infraComp
+```
+
+> **Legend:** **green** = new component ★ · **purple** = supplier device / authenticator · **yellow** = Stratos infrastructure · white = unchanged
+
+---
+
 ### 3.1 Three-Layer Architecture
 
 **Layer 1 — Stratos Dcloud Infrastructure (existing, TRL 9)**
@@ -87,7 +141,7 @@ did:key:z<multibase-encoded P-256 public key>
 
 No blockchain transaction is required to register the supplier's holder DID. The DID is stable as long as the passkey is stable. If a passkey is lost or rotated, the supplier re-registers and DSTN automatically re-issues (issuance is data-driven).
 
-**Figure 1 — System Architecture and Component Diagram**
+**Figure 2 — System Architecture and Component Diagram**
 
 ```mermaid
 graph TB
@@ -163,7 +217,7 @@ graph TB
 
 ### 3.2 System Actors
 
-**Figure 2 — Actor and Component Relationships**
+**Figure 3 — Actor and Component Relationships**
 
 ```mermaid
 graph LR
@@ -223,6 +277,45 @@ graph LR
 | Onboarding — Phase 2 | Email invite + self-serve fallback | Proactive invite when contact email is available in procurement records |
 | Access per company | Single designated holder (Phase 1) | One passkey per company; multi-holder and access delegation deferred to Phase 2 |
 
+**Figure 4 — Component Changes: Removed · Added · Unchanged**
+
+```mermaid
+flowchart LR
+    subgraph RM["❌  Removed"]
+        direction TB
+        R1["Aries Holder Agent\nuser-installed wallet"]
+        R2["Supplier Wallet UI"]
+        R3["Wallet private key\nheld by supplier"]
+    end
+
+    subgraph ADDED["✅  Added"]
+        direction TB
+        A1["DSTN Supplier Portal\nWebAuthn · no install required"]
+        A2["Passkey Registry\nTEE-resident"]
+        A3["TEE Holder Agent\nsession-scoped"]
+        A4["Credential Store\nencrypted at rest"]
+        A5["Pending State Store\nin Data Aggregation"]
+    end
+
+    subgraph KEPT["✓  Unchanged"]
+        direction TB
+        U1["Aries Issuer Agent TEE"]
+        U2["Data Aggregation Service"]
+        U3["Stratos Infrastructure\nBlockchain · Storage · TEE · DB"]
+        U4["Verification API"]
+        U5["Verifier Widget"]
+        U6["Admin Dashboard"]
+    end
+
+    classDef removed fill:#fff1f2,stroke:#fecdd3,color:#be123c,font-weight:bold
+    classDef added fill:#f0fdf4,stroke:#86efac,color:#166534,font-weight:bold
+    classDef kept fill:#f8fafc,stroke:#e2e8f0,color:#64748b
+
+    class R1,R2,R3 removed
+    class A1,A2,A3,A4,A5 added
+    class U1,U2,U3,U4,U5,U6 kept
+```
+
 ---
 
 ## 4. Data Flows
@@ -241,7 +334,7 @@ graph LR
 
 **No government staff action is required per individual credential.** The pipeline is data-event-driven, not human-initiated.
 
-**Figure 3 — Credential Issuance Sequence**
+**Figure 5 — Credential Issuance Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -280,7 +373,7 @@ sequenceDiagram
 
 Suppliers visit the DSTN portal once to register their passkey and claim their credential. No wallet software is installed. No seed phrase is generated.
 
-**Figure 4 — Supplier Registration Sequence**
+**Figure 6 — Supplier Registration Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -320,7 +413,7 @@ sequenceDiagram
 
 On every subsequent visit, the supplier authenticates with their passkey. No password, no username.
 
-**Figure 5 — Supplier Session Sequence**
+**Figure 7 — Supplier Session Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -360,7 +453,7 @@ sequenceDiagram
 4. Badge shows real-time status: green (verified), amber (expiring soon), red (revoked / expired)
 5. No polling lag — the API reads directly from Stratos chain state
 
-**Figure 6 — Credential Display (Embeddable Badge) Sequence**
+**Figure 8 — Credential Display (Embeddable Badge) Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -395,7 +488,7 @@ sequenceDiagram
 4. Returns a signed JSON response: credential status, issuing authority, issue date, expiry, and cryptographic proof
 5. Round-trip completes in under one second
 
-**Figure 7 — Active Verification Sequence**
+**Figure 9 — Active Verification Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -423,7 +516,7 @@ sequenceDiagram
 
 **Revocation is data-driven**, not staff-driven. Any change in the authoritative public data propagates to the credential within the next scheduled data sync window.
 
-**Figure 8 — Automated Revocation Sequence**
+**Figure 10 — Automated Revocation Sequence**
 
 ```mermaid
 sequenceDiagram
@@ -545,7 +638,7 @@ The ISC testing contract funds **hardening this prototype to production quality*
 | Month 3–4 | Supplier Portal and Verifier Widget functional; performance benchmarks established; revocation flow demonstrated end-to-end; bilingual UI complete | Sub-1-second verification API response; revocation reflected in widget within 30 seconds of status change |
 | Month 5–6 | TEE-attested issuance complete (hardware attestation verifiable); system deployed in PSPC-adjacent test environment; 30-day stability test; security and privacy assessment aligned with Treasury Board standards | 99.9% uptime over 30-day test; hardware attestation verifiable by third-party; security assessment delivered |
 
-**Figure 9 — Contract Milestone Timeline**
+**Figure 11 — Contract Milestone Timeline**
 
 ```mermaid
 gantt
