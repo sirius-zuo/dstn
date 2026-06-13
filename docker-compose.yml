@@ -2,18 +2,24 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: dstn
-      POSTGRES_USER: dstn
-      POSTGRES_PASSWORD: dstn
+      POSTGRES_DB: ${POSTGRES_DB:-dstn}
+      POSTGRES_USER: ${POSTGRES_USER:-dstn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dstn}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dstn -d dstn"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD:-change-redis-pw}
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 
 volumes:
   pgdata:
