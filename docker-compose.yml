@@ -21,5 +21,21 @@ services:
     ports:
       - "127.0.0.1:6379:6379"
 
+  issuer-agent:
+    build:
+      context: services/issuer
+      dockerfile: Dockerfile
+    environment:
+      ACAPY_WALLET_KEY: ${ACAPY_WALLET_KEY:-change-wallet-key}
+      STRATOS_GENESIS_URL: ${STRATOS_GENESIS_URL}
+      STRATOS_API_URL: ${STRATOS_API_URL}
+      STRATOS_API_KEY: ${STRATOS_API_KEY}
+      ISSUER_AGENT_API_KEY: ${ISSUER_AGENT_API_KEY:-change-me}
+    ports:
+      - "8020:8020"
+      - "8021:8021"
+    depends_on:
+      - postgres
+
 volumes:
   pgdata:

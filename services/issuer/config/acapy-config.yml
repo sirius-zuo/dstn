@@ -1,0 +1,37 @@
+# services/issuer/config/acapy-config.yml
+label: "DSTN Issuer Agent"
+wallet-type: askar
+wallet-name: dstn-issuer
+wallet-key: "${ACAPY_WALLET_KEY}"
+
+# Stratos blockchain as the AnonCreds ledger
+genesis-url: "${STRATOS_GENESIS_URL}"
+ledger-pool-name: stratos
+
+# DID plugin for did:stratos resolution
+plugin:
+  - issuer.did_resolver
+
+plugin-config-value:
+  - "stratos.api_url=${STRATOS_API_URL}"
+  - "stratos.api_key=${STRATOS_API_KEY}"
+
+# Admin API (internal only — do not expose externally)
+admin:
+  - "0.0.0.0"
+  - 8021
+admin-insecure-mode: false
+admin-api-key: "${ISSUER_AGENT_API_KEY}"
+
+# Inbound/outbound DIDComm — TEE-internal only in production
+inbound-transport:
+  - - http
+    - "0.0.0.0"
+    - 8020
+outbound-transport:
+  - http
+
+auto-provision: true
+auto-accept-invites: false
+auto-accept-requests: false
+log-level: info
