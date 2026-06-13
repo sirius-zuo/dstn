@@ -8,6 +8,9 @@ ADMIN_URL = "http://issuer:8021"
 @pytest.mark.asyncio
 @respx.mock
 async def test_trigger_issue_calls_issuer_agent():
+    respx.get(f"{ADMIN_URL}/connections").mock(
+        return_value=httpx.Response(200, json={"results": [{"connection_id": "conn-test"}]})
+    )
     respx.post(f"{ADMIN_URL}/issue-credential-2.0/send").mock(
         return_value=httpx.Response(200, json={"cred_ex_id": "abc-123"})
     )
@@ -28,6 +31,9 @@ async def test_trigger_revoke_calls_issuer_agent():
 @pytest.mark.asyncio
 @respx.mock
 async def test_trigger_issue_handles_agent_error():
+    respx.get(f"{ADMIN_URL}/connections").mock(
+        return_value=httpx.Response(200, json={"results": [{"connection_id": "conn-test"}]})
+    )
     respx.post(f"{ADMIN_URL}/issue-credential-2.0/send").mock(
         return_value=httpx.Response(500)
     )
