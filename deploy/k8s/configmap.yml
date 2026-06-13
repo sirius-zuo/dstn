@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dstn-config
+  namespace: dstn
+data:
+  CANADABUYS_BASE_URL: "https://canadabuys.canada.ca/openapi/v1"
+  OPEN_GOV_DATASET_URL: "https://open.canada.ca/data/en/datastore/dump/d8f85d91-7dec-4fd1-8055-483b77225d8b"
+  ISSUER_AGENT_ADMIN_URL: "http://issuer-agent-svc:8021"
+  PORTAL_RP_ID: "dstn.canada.ca"
+  PORTAL_RP_NAME: "DSTN Supplier Portal"
+  PORTAL_ORIGIN: "https://dstn.canada.ca"
+  SYNC_INTERVAL_MINUTES: "60"

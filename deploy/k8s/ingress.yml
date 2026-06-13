@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dstn-ingress
+  namespace: dstn
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "10"
+spec:
+  tls:
+  - hosts:
+    - dstn.canada.ca
+    secretName: dstn-tls-secret
+  rules:
+  - host: dstn.canada.ca
+    http:
+      paths:
+      - path: /api/verify
+        pathType: Prefix
+        backend:
+          service:
+            name: verification-svc
+            port:
+              number: 8040
+      - path: /static
+        pathType: Prefix
+        backend:
+          service:
+            name: verification-svc
+            port:
+              number: 8040
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: portal-svc
+            port:
+              number: 8030

@@ -3,12 +3,13 @@ import json
 import logging
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from shared.config import settings
 from shared.db import async_session_factory
 from portal.passkey import PasskeyManager
 from portal.passkey_registry import PasskeyRegistry
-from portal.credential_store import CredentialStore
+from portal.tee_credential_store import TEECredentialStore as CredentialStore
 from portal.holder_agent import HolderSession
 from portal.session import create_session_token, decode_session_token
 from webauthn import verify_registration_response, verify_authentication_response
@@ -16,6 +17,17 @@ from webauthn.helpers.structs import AuthenticatorTransport
 
 app = FastAPI(title="DSTN Supplier Portal")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 _passkey_mgr = PasskeyManager(rp_id=settings.portal_rp_id, rp_name=settings.portal_rp_name, origin=settings.portal_origin)
 
 class RegistrationCompleteRequest(BaseModel):

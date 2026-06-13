@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal
+  namespace: dstn
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: portal
+  template:
+    metadata:
+      labels:
+        app: portal
+    spec:
+      containers:
+      - name: portal
+        image: ghcr.io/stratos/dstn-portal:latest
+        command: ["uvicorn", "portal.main:app", "--host", "0.0.0.0", "--port", "8030"]
+        envFrom:
+        - configMapRef:
+            name: dstn-config
+        - secretRef:
+            name: dstn-secrets
+        ports:
+        - containerPort: 8030
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8030
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal-svc
+  namespace: dstn
+spec:
+  selector:
+    app: portal
+  ports:
+  - port: 8030
+    targetPort: 8030

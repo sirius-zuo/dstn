@@ -1,0 +1,26 @@
+groups:
+- name: dstn-critical
+  rules:
+  - alert: VerificationAPIDown
+    expr: up{job="dstn-verification"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Verification API is down"
+
+  - alert: VerificationAPISlowP95
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="dstn-verification"}[5m])) > 1.0
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Verification API p95 response > 1 second"
+
+  - alert: DASyncStale
+    expr: time() - dstn_last_sync_timestamp > 7200
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Data Aggregation Service has not synced in 2 hours"

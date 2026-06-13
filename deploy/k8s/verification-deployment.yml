@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verification
+  namespace: dstn
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: verification
+  template:
+    metadata:
+      labels:
+        app: verification
+    spec:
+      containers:
+      - name: verification
+        image: ghcr.io/stratos/dstn-verification:latest
+        command: ["uvicorn", "verification.main:app", "--host", "0.0.0.0", "--port", "8040"]
+        envFrom:
+        - configMapRef:
+            name: dstn-config
+        - secretRef:
+            name: dstn-secrets
+        ports:
+        - containerPort: 8040
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8040
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verification-svc
+  namespace: dstn
+spec:
+  selector:
+    app: verification
+  ports:
+  - port: 8040
+    targetPort: 8040

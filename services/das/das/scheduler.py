@@ -1,5 +1,9 @@
 import logging
+import time
+from prometheus_client import Gauge
 from shared.config import settings
+
+_LAST_SYNC_TIMESTAMP = Gauge("dstn_last_sync_timestamp", "Unix timestamp of last successful DAS sync")
 from shared.db import async_session_factory
 from das.connectors.canadabuys import CanadaBuysConnector
 from das.connectors.open_gov import OpenGovConnector
@@ -49,4 +53,5 @@ async def run_sync_cycle() -> None:
                     await session.commit()
             elif derived_status.status == "revoked" and record.credential_issued and record.credential_id:
                 await trigger.revoke(record.credential_id, rev_reg_id="")  # rev_reg_id filled in Part 2
+    _LAST_SYNC_TIMESTAMP.set(time.time())
     logger.info("Sync cycle complete")

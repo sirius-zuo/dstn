@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "dstn-portal"
+    static_configs:
+      - targets: ["portal-svc:8030"]
+    metrics_path: /metrics
+
+  - job_name: "dstn-verification"
+    static_configs:
+      - targets: ["verification-svc:8040"]
+    metrics_path: /metrics
+
+  - job_name: "dstn-das"
+    static_configs:
+      - targets: ["das-svc:8050"]
+    metrics_path: /metrics
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - "dstn-alerts.yml"
