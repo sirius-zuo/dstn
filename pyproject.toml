@@ -1,5 +1,5 @@
 [tool.uv.workspace]
-members = ["services/das", "services/issuer"]
+members = ["services/das", "services/issuer", "services/portal"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
