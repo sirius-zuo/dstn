@@ -13,4 +13,4 @@ def create_session_token(business_number: str, did_key: str, secret: str) -> str
     return jwt.encode(payload, secret, algorithm="HS256")
 
 def decode_session_token(token: str, secret: str) -> dict:
-    return jwt.decode(token, secret, algorithms=["HS256"])
+    return jwt.decode(token, secret, algorithms=["HS256"], options={"require": ["exp", "sub"]})

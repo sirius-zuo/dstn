@@ -52,6 +52,10 @@ async def run_sync_cycle() -> None:
                     record.credential_id = cred_ex_id
                     await session.commit()
             elif derived_status.status == "revoked" and record.credential_issued and record.credential_id:
-                await trigger.revoke(record.credential_id, rev_reg_id="")  # rev_reg_id filled in Part 2
+                success = await trigger.revoke(record.credential_id, rev_reg_id="")
+                if success:
+                    record.credential_issued = False
+                    record.credential_id = None
+                    await session.commit()
     _LAST_SYNC_TIMESTAMP.set(time.time())
     logger.info("Sync cycle complete")

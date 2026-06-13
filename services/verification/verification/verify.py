@@ -27,7 +27,10 @@ class VerificationService:
         if cred_record is None:
             return {"business_number": business_number, "status": "pending", "revoked": None}
 
-        revoked = await self._check_revocation(cred_record.cred_ex_id or "0")
+        if cred_record.cred_ex_id is None:
+            revoked = False  # No exchange ID — cannot check revocation registry
+        else:
+            revoked = await self._check_revocation(cred_record.cred_ex_id)
 
         return {
             "business_number": business_number,
@@ -49,6 +52,11 @@ class VerificationService:
                 )
                 r.raise_for_status()
                 return r.json().get("revoked", False)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                return False  # Credential ID not in registry
+            logger.warning("Revocation check HTTP error %s: %s", exc.response.status_code, exc)
+            return False
         except Exception as exc:
             logger.warning("Revocation check failed: %s — treating as not revoked", exc)
             return False

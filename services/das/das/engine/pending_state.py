@@ -1,7 +1,8 @@
 import json
 from datetime import datetime, timezone
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from shared.models import SupplierRecord, SupplierStatus
+from shared.models import PasskeyRecord, SupplierRecord, SupplierStatus
 from das.engine.status_derivation import DerivedStatus
 
 
@@ -14,13 +15,17 @@ class PendingStateStore:
         now = datetime.now(timezone.utc)
 
         if existing is None:
+            passkey = (await self.session.execute(
+                select(PasskeyRecord).where(PasskeyRecord.business_number == derived.business_number)
+            )).scalar_one_or_none()
             existing = SupplierRecord(
                 business_number=derived.business_number,
                 business_name=derived.business_name,
-                status=SupplierStatus.PENDING_REGISTRATION,
+                status=SupplierStatus.ACTIVE if (passkey and derived.status == "active") else SupplierStatus.PENDING_REGISTRATION,
                 data_sources=json.dumps(derived.data_sources),
                 last_synced_at=now,
                 credential_issued=False,
+                did_key=passkey.did_key if passkey else None,
             )
             self.session.add(existing)
         else:

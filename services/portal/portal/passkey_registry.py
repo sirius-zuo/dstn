@@ -15,6 +15,8 @@ class PasskeyRegistry:
         existing = await self.session.get(PasskeyRecord, credential_id)
         if existing:
             existing.sign_count = sign_count
+            existing.did_key = did_key
+            existing.public_key_cose = public_key_cose
         else:
             self.session.add(PasskeyRecord(
                 credential_id=credential_id,

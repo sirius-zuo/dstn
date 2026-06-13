@@ -14,6 +14,7 @@ from portal.holder_agent import HolderSession
 from portal.session import create_session_token, decode_session_token
 from webauthn import verify_registration_response, verify_authentication_response
 from webauthn.helpers.structs import AuthenticatorTransport
+from webauthn.helpers import base64url_to_bytes
 
 app = FastAPI(title="DSTN Supplier Portal")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -50,6 +51,10 @@ def _require_session(authorization: str = Header(...)) -> dict:
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired session token")
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.get("/passkey/register/begin")
 async def register_begin(business_number: str):
     options, challenge = _passkey_mgr.begin_registration(business_number, business_number)
@@ -58,12 +63,12 @@ async def register_begin(business_number: str):
 @app.post("/passkey/register/complete")
 async def register_complete(body: RegistrationCompleteRequest):
     business_number = _passkey_mgr.consume_challenge(body.challenge)
-    if business_number is None:
+    if not business_number:  # None (not found) or "" (auth challenge — wrong endpoint)
         raise HTTPException(400, "Invalid or expired challenge")
     try:
         verification = verify_registration_response(
             credential=body.credential,
-            expected_challenge=body.challenge.encode(),
+            expected_challenge=base64url_to_bytes(body.challenge),
             expected_rp_id=settings.portal_rp_id,
             expected_origin=settings.portal_origin,
         )
@@ -89,7 +94,11 @@ async def auth_begin():
 async def auth_complete(body: AuthCompleteRequest):
     if _passkey_mgr.consume_challenge(body.challenge) is None:
         raise HTTPException(400, "Invalid or expired challenge")
-    credential_id_bytes =bytes(body.assertion.get("rawId", []))
+    raw_id = body.assertion.get("rawId", [])
+    if isinstance(raw_id, str):
+        credential_id_bytes = base64url_to_bytes(raw_id)
+    else:
+        credential_id_bytes = bytes(raw_id)
     async with async_session_factory() as session:
         registry = PasskeyRegistry(session)
         passkey_record = await registry.lookup_by_credential_id(credential_id_bytes)
@@ -98,7 +107,7 @@ async def auth_complete(body: AuthCompleteRequest):
         try:
             verification = verify_authentication_response(
                 credential=body.assertion,
-                expected_challenge=body.challenge.encode(),
+                expected_challenge=base64url_to_bytes(body.challenge),
                 expected_rp_id=settings.portal_rp_id,
                 expected_origin=settings.portal_origin,
                 credential_public_key=passkey_record.public_key_cose,
@@ -124,7 +133,9 @@ async def credential_status(session_data: dict = Depends(_require_session)):
     return {"status": cred.get("supplier_status", "unknown"), "credential": cred, "did_key": did_key}
 
 @app.post("/holder/receive")
-async def holder_receive(body: HolderReceiveRequest):
+async def holder_receive(body: HolderReceiveRequest, session_data: dict = Depends(_require_session)):
+    if body.did_key != session_data["did_key"]:
+        raise HTTPException(403, "did_key does not match authenticated session")
     async with async_session_factory() as db_session:
         store = CredentialStore(db_session, settings.portal_secret_key)
         await store.store(body.did_key, body.credential_json, body.cred_ex_id)

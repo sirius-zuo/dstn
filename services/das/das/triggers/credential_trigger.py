@@ -55,7 +55,7 @@ class CredentialTrigger:
                     {"name": "business_name", "value": business_name},
                     {"name": "supplier_status", "value": "active"},
                     {"name": "issue_date", "value": date.today().isoformat()},
-                    {"name": "expiry_date", "value": str(date.today().year + 1) + "-01-01"},
+                    {"name": "expiry_date", "value": (date.today().replace(year=date.today().year + 1)).isoformat()},
                     {"name": "issuing_authority", "value": "PSPC / DSTN"},
                 ],
             },
