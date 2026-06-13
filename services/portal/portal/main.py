@@ -75,8 +75,9 @@ async def auth_begin():
 
 @app.post("/passkey/auth/complete")
 async def auth_complete(body: AuthCompleteRequest):
-    _passkey_mgr.consume_challenge(body.challenge)
-    credential_id_bytes = bytes(body.assertion.get("rawId", []))
+    if _passkey_mgr.consume_challenge(body.challenge) is None:
+        raise HTTPException(400, "Invalid or expired challenge")
+    credential_id_bytes =bytes(body.assertion.get("rawId", []))
     async with async_session_factory() as session:
         registry = PasskeyRegistry(session)
         passkey_record = await registry.lookup_by_credential_id(credential_id_bytes)
