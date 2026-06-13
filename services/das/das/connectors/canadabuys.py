@@ -23,7 +23,7 @@ class CanadaBuysConnector(BaseConnector):
         for item in data.get("contracts", []):
             try:
                 records.append(ContractRecord(
-                    business_number=item.get("business_number", ""),
+                    business_number=item["business_number"],
                     vendor_name=item["vendor_name"],
                     contract_date=date.fromisoformat(item["contract_date"]),
                     contract_end_date=date.fromisoformat(item["contract_period_end"]) if item.get("contract_period_end") else None,
