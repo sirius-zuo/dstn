@@ -190,6 +190,37 @@ Expected: **48 tests, all passing**.
 
 ---
 
+## Step 9b — Run automated E2E tests (optional)
+
+The e2e suite uses Playwright + a CDP WebAuthn virtual authenticator so passkey flows run headlessly without a real device.
+
+**Install e2e dependencies once:**
+
+```bash
+pip install -r requirements-e2e.txt
+playwright install chromium
+```
+
+**Run everything via the orchestration script:**
+
+```bash
+bash scripts/run_e2e.sh
+```
+
+The script: starts Docker infra → runs migrations → starts portal/verification/frontend → runs `pytest tests/e2e/` → tears down processes it started.
+
+**Or run the tests against already-running services:**
+
+```bash
+pytest tests/e2e/ -v                   # all e2e tests
+pytest tests/e2e/ -v -k api            # API tests only (no browser)
+pytest tests/e2e/ -v -k browser        # browser tests only
+```
+
+Service logs written to `.e2e-portal.log`, `.e2e-verification.log`, `.e2e-frontend.log` when started by the script.
+
+---
+
 ## Step 10 — E2E smoke test walkthrough
 
 With all services running:
