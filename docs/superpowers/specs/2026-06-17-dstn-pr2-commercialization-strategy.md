@@ -1,0 +1,22 @@
+# DSTN — PR2: Commercialization Strategy
+**Innovative Solutions Canada — EN578-26ISC1 TS13**
+**Date:** 2026-06-17
+**Document type:** PR2 Commercialization Strategy Response (Question 1)
+
+---
+
+## Offeror's strategy to commercialize the proposed innovation
+
+DSTN's commercialization strategy moves through three phases, each de-risking the next, with a structural competitive moat designed to sustain advantage once acquired.
+
+**Moving from TRL 7 to commercial readiness:** The ISC Testing Stream contract (Months 1–6) funds hardening the existing functional prototype to TRL 9 in a PSPC-adjacent operational environment, not building from scratch — all core components (Stratos Dcloud, Hyperledger Aries/AnonCreds, WebAuthn) are already TRL 9 individually. The milestone plan is staged: Months 1–2 finalize the `did:stratos` W3C submission and the automated issuance pipeline against live public data; Months 3–4 deliver the Supplier Portal, Verifier Widget, and revocation flow with defined performance acceptance criteria; Months 5–6 add TEE hardware attestation, deploy into the PSPC-adjacent test environment, and run a 30-day stability test with a Treasury Board-aligned security and privacy assessment. Successful completion establishes PSPC as a reference customer and qualifies DSTN for ISC's Pathway to Commercialization (PTC) program.
+
+**Introducing the innovation to market:** Market entry follows ISC's structured PTC channel rather than cold outreach, which substantially de-risks the go-to-market motion. PSPC, as the testing-phase anchor customer, becomes the first paid reference (Months 7–12). From there, the Offeror targets Shared Services Canada (the natural shared-infrastructure owner) and ISED (which already issues business credentials under a similar issuer-holder-verifier pattern), followed by provincial procurement bodies (Ontario, BC, Alberta) facing the same supplier-verification problem with no federal procurement vehicle required. Pricing follows an annual SaaS subscription per department, covering unlimited issuances and verifications within scope — a model department budget cycles already understand, easing procurement approval relative to novel pricing structures.
+
+**Strategies to ensure success:** (1) Reference-customer sequencing — each successful department deployment becomes the case study that lowers sales friction for the next, since PSPC's adoption directly informs SSC and ISED's risk assessment of the same vendor. (2) Standards-based interoperability — submitting `did:stratos` to the W3C DID registry and building on open AnonCreds/Aries protocols (the same stack as BC Government's production OrgBook system) reduces departmental concerns about vendor lock-in, a common objection to novel government technology procurement. (3) Zero-friction supplier adoption — the passkey-only, wallet-free holder experience removes the single biggest adoption barrier reported in prior VC deployments aimed at non-technical SME suppliers, directly increasing the credential activation rate departments will measure. (4) Staged expansion — Track A (Canadian government and equity-certification bodies: CCIB, WBE Canada, Social Enterprise Canada, professional licensing), Track B (international: US SAM.gov, EU PEPPOL, UK GDS), and Track C (enterprise B2B verification API) are sequenced so each track's revenue funds the next rather than requiring simultaneous capital-intensive expansion.
+
+**Sustaining success long term:** DSTN's moat compounds with adoption rather than eroding. The Proof-of-Traffic trust signal accumulates with every verification call, giving incumbents a usage-based advantage a new entrant cannot replicate by copying the technology alone. `did:stratos` as a registered W3C standard raises switching costs once referenced in procurement policy — replacing it becomes a policy change, not a vendor swap. Network effects compound as each new issuer and verifier integration increases the value of being a holder, reinforcing adoption. Stratos's existing TRL-9 production infrastructure gives DSTN a structural cost and resilience advantage over competitors building on centralized cloud, supporting margin sustainability as the customer base scales from departments to provinces to international and enterprise markets (revenue projected to grow from $2.3M in Year 1 to $4–8M by Year 4 across these combined channels).
+
+---
+
+*Character count: 4,112 characters — under the 5,000 character limit.*
